@@ -1,183 +1,168 @@
-//обЪявляем переменные
-const container = document.querySelector('.container');
-const commentList = document.querySelector('.comments');
-const addForm = document.querySelector('.add-form');
-const userName = document.querySelector('.add-form-name');
-const textCommment = document.querySelector('.add-form-text');
-const button = document.querySelector('.add-form-button');
-const comments = document.querySelectorAll('.comment');
-const commentsListArray = [
-    {
-        name: "Глеб Фокин",
-        date: "12.02.22 12:18",
-        msg: "Это будет первый комментарий на этой странице",
-        like: "3",
-        Iliked: false,
-    },
-    {
-        name: "Варвара Н.",
-        date: "13.02.22 19:22",
-        msg: "Мне нравится как оформлена эта страница! ❤",
-        like: "75",
-        Iliked: false,
-    },
-    {
-        name: "Евген",
-        date: "01.05.23 13:01",
-        msg: "Ничего не понимаю , но интересно ",
-        like: "1",
-        Iliked: true,
-    }
-];
+const buttonNewComment = document.querySelector('.add-form-button');
+const comment = document.querySelector('.comment');
+const boxComments = document.querySelector('.comments');
+const inputName = document.querySelector('.add-form-name');
+const textAreaComment = document.querySelector('.add-form-text');
+const boxCommentsTexts = boxComments.querySelectorAll('.comment');
+const formBox = document.querySelector('.add-form');
+let now = new Date();
 
-const toggleLikes = (e) => {
-  const comment = commentsListArray[e.target.dataset.id];
-  comment.like += comment.Iliked ? -1 : 1;
-  comment.Iliked = !comment.Iliked;
+let userComments = [];
+
+function getApi() {
+    return fetch("https://webdev-hw-api.vercel.app/api/v1/alex-zasimov/comments", {
+    method: "GET"
+  })
+
+  .then((response) => {
+    return response.json();
+  })
+
+  .then((responseData) => {
+    const appComments = responseData.comments.map((comment) => {
+        return {
+          name: comment.author.name,
+          date: new Date(comment.date).toLocaleString().slice(0,-3),
+          text: comment.text,
+          likes: comment.likes,
+          isLiked: false,
+        };
+      });
+      userComments = appComments;
+      console.log(userComments);
+      renderComments();
+  })
+}
+
+getApi();
+
+const addLike = (e) => {
+  const comment = userComments[e.target.dataset.id];
+  comment.likes++;
+  comment.Iliked = true;
+}
+
+const delLike = (e) => {
+  const comment = userComments[e.target.dataset.id];
+  comment.likes--;
+  comment.Iliked = false;
 }
 
 const initLikeClick = () => {
-  const likeClickElements = document.querySelectorAll('.likes');
-  likeClickElements.forEach((likeClickElement) => {
-    likeClickElement.addEventListener('click', (e) => {
-      toggleLikes(e);
+  const likeClickElems = document.querySelectorAll('.likes');
+  for (likeClickElem of likeClickElems) {
+    likeClickElem.addEventListener('click', (e) => {
+      e.stopPropagation();
+      (userComments[e.target.dataset.id].Iliked) ? delLike(e) : addLike(e);
       renderComments();
+    })
+  }
+}
+
+// Первый вариан ответа на коммент
+const answerComment = () => {
+  const boxCommentsTexts = document.querySelectorAll('.comment');
+  boxCommentsTexts.forEach((comment) => {
+    comment.addEventListener('click', (e) => {
+      const author = comment.querySelector('.comment-header div:first-child').textContent;
+      const text = comment.querySelector('.comment-text').textContent;
+      textAreaComment.value = `@${author} \n\n > ${text}, `;
     });
   });
 }
+answerComment();
 
-const editClick = () => {
-    const editClickElements = document.querySelectorAll('.edit-comment');
+const renderComments = () => {
+  const commentHtml = userComments.map((comment,index) => {
+    (comment.Iliked) ? Iliked = '-active-like' : Iliked = '';
+    return `<li class="comment">
+      <div class="comment-header">
+        <div class="comment-user-name">${comment.name}</div>
+        <div class="comment-date">${comment.date}</div>
+      </div>
+      <div class="comment-body">
+        <div class="comment-text">
+          ${comment.text}
+        </div>
+      </div>
+      <div class="comment-footer">
+        <div class="likes">
+          <span class="likes-counter">${comment.likes}</span>
+          <button class="like-button ${Iliked}" data-id='${index}'></button>
+        </div>
+      </div>
+    </li>`;
+  }).join('');
 
-    for (const editClickElement of editClickElements) {
-        editClickElement.addEventListener('click', (e) => {
-            const id = e.target.dataset.id;
-            const fragment = document.createDocumentFragment();
-            const popap = document.createElement('div');
-            popap.classList.add('popap');
-            container.appendChild(popap);
-            const popapTextarea = document.createElement('textarea');
-            popapTextarea.classList.add('editText')
-            popapTextarea.textContent = commentsListArray[id].msg;
-            const saveButton = document.createElement('button');
-            saveButton.textContent = 'Сохранить';
-            saveButton.classList.add('save_button');
-            fragment.appendChild(popapTextarea);
-            fragment.appendChild(saveButton);
-            popap.appendChild(fragment);
-            saveEditComment(id,popap);
-        });
-    }
-
-}
-
-const delClick = () => {
-    const delClickElements = document.querySelectorAll('.del-comment');
-    for (const delClickElement of delClickElements) {
-        delClickElement.addEventListener('click', (e) => {
-            commentsListArray.splice(e.target.dataset.id, 1);
-            renderComments();
-        });
-    }
-}
-
-function saveEditComment(id,popap) {
-    const saveButtonClick = document.querySelector('.save_button');
-    saveButtonClick.addEventListener('click', (e) => {
-        const editText = document.querySelector('.editText');
-        if (editText.value.length > 10) {
-            commentsListArray[id].msg = editText.value;
-            popap.remove();
-            renderComments();
-        }
-    })
-}
-
-function renderComments() {
-    const commentHtmlResult = commentsListArray.map((comment, id) => {
-        (comment.Iliked) ? Iliked = '-active-like' : Iliked = '';
-        return `<li class="comment" data-id="${id}">
-          <div class="comment-header">
-            <div>${comment.name}</div>      
-            <div>${comment.date}</div>   
-          </div>
-          <div class="comment-body">
-            <div class="comment-text" data-id="${id}">
-              ${comment.msg}
-            </div>
-          </div>
-          <div class="comment-footer">
-
-            <div class="likes">
-              <span class="likes-counter" >${comment.like}</span>
-              <button class="like-button ${Iliked}" data-id="${id}"></button>
-            </div>
-            <div class="edit-comment"><span data-id="${id}" title="Редактироать">&#9998;</span></div>
-            <div class="del-comment"><span data-id="${id}" title="Удалить">&#10008;</span></div>
-          </div>
-        </li>`;
-    }).join("");
-    commentList.innerHTML = commentHtmlResult;
-    initLikeClick();
-    editClick();
-    delClick();
-}
-
-function valiate() {
-    if (userName.value.length === 0) {
-        userName.classList.add('error');
-    } else { userName.classList.remove('error'); }
-    if (textCommment.value.length < 10) {
-        textCommment.classList.add('error');
-        return false;
-    } else { textCommment.classList.remove('error'); }
-
-    if (userName.value.length > 0 && textCommment.value.length >= 10) {
-        return true;
-    }
-    else {
-        return false;
-    }
-}
-
-function addComment() {
-    const validate = valiate();
-    const date = new Date();
-    if (validate) {
-        commentsListArray.push({
-            name: userName.value,
-            date: dateFormat(),
-            msg: textCommment.value,
-            like: 0,
-        });
-
-        renderComments();
-        textCommment.value = ""; 
-        button.setAttribute('disabled', '');
-    }
-}
-
-button.addEventListener('click', (event) => {
-    addComment();
-});
-
-addForm.addEventListener('input', (event) => {
-    const validate = valiate();
-    (validate) ? button.removeAttribute('disabled') : button.setAttribute('disabled', '');
-});
-
-addForm.addEventListener('keydown', (e) => {
-    if (e.ctrlKey && e.keyCode == 13) { addComment(); }
-});
-
-function dateFormat() {
-    const date = new Date();
-    (date.getDate() < 10) ? dd = '0' + date.getDate() : dd = date.getDate();
-    (date.getMonth() < 10) ? MM = '0' + (date.getMonth() + 1) : MM = (date.getMonth() + 1);
-    (date.getFullYear()) ? YY = date.getFullYear().toString().slice(-2) : YY = date.getFullYear().toString().slice(-2);
-    (date.getHours() < 10) ? hh = '0' + date.getHours() : hh = date.getHours();
-    (date.getMinutes() < 10) ? mm = '0' + date.getMinutes() : mm = date.getMinutes();
-    return `${dd}.${MM}.${YY} ${hh}:${mm}`;
+  boxComments.innerHTML = commentHtml;
+  initLikeClick();
+  answerComment();
 }
 
 renderComments();
+
+const addComment = () => {
+  const container = document.querySelector('.container')
+  formBox.classList.add('hidden');
+  let loader = document.createElement('p');
+  loader.className = "loader";
+  loader.textContent = 'Комментарии загружаются...';
+  container.appendChild(loader);
+
+  const fetchPromise = fetch("https://webdev-hw-api.vercel.app/api/v1/alex-zasimov/comments", {
+    method: "POST",
+    body: JSON.stringify({
+      id: 1,
+      date: `${now.toLocaleString().slice(0,-3)}`,
+      likes: 0,
+      isLiked: false,
+      text: `${textAreaComment.value
+      .replaceAll('<', '&lt;')
+      .replaceAll('<', '&gt;')}`,
+      name: inputName.value
+      .replaceAll('<', '&lt;')
+      .replaceAll('<', '&gt;'), 
+      })
+    })
+
+    .then((response) => {
+      return response.json();
+    })
+
+    .then((responseData) => {
+      return userComments = responseData.comments;
+    })
+
+    .then(() => {
+      return getApi();
+      return renderComments();
+    })
+
+    .then((data) => {
+      loader.classList.add('hidden');
+      formBox.classList.remove('hidden');
+    });
+
+  getApi();
+  renderComments();
+  answerComment();
+  inputName.value = '';
+  textAreaComment.value = '';
+}
+
+buttonNewComment.addEventListener('click', function () {
+  let oldComments = boxComments.innerHTML;
+
+  if (inputName.value === '') {
+    inputName.classList.add('error');
+    return;
+  } if (textAreaComment.value === '') {
+    textAreaComment.classList.add('error');
+    return;
+  } else {
+    getApi();
+    addComment();
+    inputName.classList.remove('error');
+    textAreaComment.classList.remove('error');
+    }
+});
